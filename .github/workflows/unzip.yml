@@ -1,6 +1,7 @@
 name: Extract Store
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - 'MYSTORE.zip'
