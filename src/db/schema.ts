@@ -1,178 +1,90 @@
 import {
-  pgTable,
-  uuid,
-  text,
   integer,
-  boolean,
-  timestamp,
-  varchar,
-  numeric,
-  index,
-  uniqueIndex,
   jsonb,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  boolean,
+  index,
 } from "drizzle-orm/pg-core";
 
-// ─── Admin Users ───
-export const adminUsers = pgTable("admin_users", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  username: varchar("username", { length: 100 }).notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-// ─── Categories ───
-export const categories = pgTable("categories", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
-  slug: varchar("slug", { length: 255 }).notNull().unique(),
-  description: text("description"),
-  imageUrl: text("image_url"),
-  visible: boolean("visible").default(true).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  index("categories_slug_idx").on(table.slug),
-  index("categories_visible_idx").on(table.visible),
-]);
-
-// ─── Products ───
 export const products = pgTable("products", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
-  slug: varchar("slug", { length: 255 }).notNull().unique(),
-  description: text("description"),
-  price: numeric("price", { precision: 10, scale: 2 }).notNull(),
-  stock: integer("stock").default(0).notNull(),
-  imageUrl: text("image_url"),
-  categoryId: uuid("category_id"),
-  active: boolean("active").default(true).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  id: serial("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  tagline: text("tagline").notNull().default(""),
+  description: text("description").notNull().default(""),
+  price: integer("price").notNull(),
+  compareAtPrice: integer("compare_at_price"),
+  category: text("category").notNull(),
+  collection: text("collection").notNull().default(""),
+  images: jsonb("images").$type<string[]>().notNull().default([]),
+  sizes: jsonb("sizes").$type<string[]>().notNull().default([]),
+  colors: jsonb("colors").$type<string[]>().notNull().default([]),
+  details: jsonb("details").$type<string[]>().notNull().default([]),
+  featured: boolean("featured").notNull().default(false),
+  isNew: boolean("is_new").notNull().default(false),
+  bestSeller: boolean("best_seller").notNull().default(false),
+  stock: integer("stock").notNull().default(50),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
-  index("products_category_idx").on(table.categoryId),
-  index("products_active_idx").on(table.active),
+  index("products_category_idx").on(table.category),
+  index("products_collection_idx").on(table.collection),
   index("products_slug_idx").on(table.slug),
-  index("products_active_created_idx").on(table.active, table.createdAt),
+  index("products_featured_idx").on(table.featured),
+  index("products_isNew_idx").on(table.isNew),
+  index("products_bestSeller_idx").on(table.bestSeller),
 ]);
 
-// ─── Customers ───
-export const customers = pgTable("customers", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
-  email: varchar("email", { length: 255 }).notNull(),
-  phone: varchar("phone", { length: 50 }),
-  wilaya: varchar("wilaya", { length: 100 }),
-  city: varchar("city", { length: 100 }),
-  address: text("address"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+export const reviews = pgTable("reviews", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  author: text("author").notNull(),
+  rating: integer("rating").notNull(),
+  title: text("title").notNull().default(""),
+  body: text("body").notNull().default(""),
+  verified: boolean("verified").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
-  index("customers_email_idx").on(table.email),
-  index("customers_phone_idx").on(table.phone),
+  index("reviews_productId_idx").on(table.productId),
+  index("reviews_rating_idx").on(table.rating),
 ]);
 
-// ─── Orders ───
 export const orders = pgTable("orders", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  orderNumber: varchar("order_number", { length: 50 }).notNull().unique(),
-  customerId: uuid("customer_id").notNull(),
-  status: varchar("status", { length: 20 }).default("Pending").notNull(),
-  paymentMethod: varchar("payment_method", { length: 30 }).notNull(),
-  paymentStatus: varchar("payment_status", { length: 20 }).default("Pending").notNull(),
-  subtotal: numeric("subtotal", { precision: 10, scale: 2 }).notNull(),
-  deliveryFee: numeric("delivery_fee", { precision: 10, scale: 2 }).notNull(),
-  total: numeric("total", { precision: 10, scale: 2 }).notNull(),
-  deliveryZoneId: uuid("delivery_zone_id"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  id: serial("id").primaryKey(),
+  orderNumber: text("order_number").notNull().unique(),
+  email: text("email").notNull(),
+  fullName: text("full_name").notNull(),
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  postalCode: text("postal_code").notNull(),
+  country: text("country").notNull(),
+  subtotal: integer("subtotal").notNull(),
+  shipping: integer("shipping").notNull().default(0),
+  total: integer("total").notNull(),
+  items: jsonb("items").$type<OrderItem[]>().notNull().default([]),
+  status: text("status").notNull().default("confirmed"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
-  index("orders_customer_idx").on(table.customerId),
+  index("orders_email_idx").on(table.email),
   index("orders_status_idx").on(table.status),
-  index("orders_created_idx").on(table.createdAt),
+  index("orders_createdAt_idx").on(table.createdAt),
 ]);
 
-// ─── Order Items ───
-export const orderItems = pgTable("order_items", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  orderId: uuid("order_id").notNull(),
-  productId: uuid("product_id").notNull(),
-  productName: varchar("product_name", { length: 255 }).notNull(),
-  quantity: integer("quantity").notNull(),
-  price: numeric("price", { precision: 10, scale: 2 }).notNull(),
-}, (table) => [
-  index("order_items_order_idx").on(table.orderId),
-]);
+export type OrderItem = {
+  productId: number;
+  slug: string;
+  name: string;
+  price: number;
+  quantity: number;
+  size: string;
+  color: string;
+  image: string;
+};
 
-// ─── Delivery Zones / Wilayas ───
-export const deliveryZones = pgTable("delivery_zones", {
-  id: uuid("id").defaultRandom().primaryKey(),
-
-  // Internal name
-  name: varchar("name", { length: 255 }).notNull(),
-
-  // Delivery price
-  price: numeric("price", { precision: 10, scale: 2 }).notNull(),
-
-  // Estimated delivery time
-  estimatedTime: varchar("estimated_time", { length: 100 }),
-
-  // Whether this Wilaya is active
-  enabled: boolean("enabled").default(true).notNull(),
-
-  // Algeria Wilaya code
-  wilayaCode: integer("wilaya_code"),
-
-  // Wilaya name
-  wilayaName: varchar("wilaya_name", { length: 255 }),
-
-  // Available communes
-  communes: jsonb("communes").$type<string[]>().notNull().default([]),
-});
-
-// ─── Media ───
-export const media = pgTable("media", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
-  type: varchar("type", { length: 50 }).notNull(),
-  url: text("url").notNull(),
-  size: integer("size").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-// ─── Store Settings ───
-export const storeSettings = pgTable("store_settings", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  storeName: varchar("store_name", { length: 255 }).default("RYVEN DEPT.").notNull(),
-  currency: varchar("currency", { length: 10 }).default("DZD").notNull(),
-  defaultLanguage: varchar("default_language", { length: 5 }).default("en").notNull(),
-  darkMode: boolean("dark_mode").default(true).notNull(),
-  musicEnabled: boolean("music_enabled").default(false).notNull(),
-  musicUrl: text("music_url"),
-  socialEnabled: boolean("social_enabled").default(true).notNull(),
-  instagramUrl: text("instagram_url"),
-  facebookUrl: text("facebook_url"),
-  tiktokUrl: text("tiktok_url"),
-  youtubeUrl: text("youtube_url"),
-  codEnabled: boolean("cod_enabled").default(true).notNull(),
-  cibEnabled: boolean("cib_enabled").default(true).notNull(),
-  edahabiaEnabled: boolean("edahabia_enabled").default(true).notNull(),
-  baridiMobEnabled: boolean("baridi_mob_enabled").default(true).notNull(),
-  cardEnabled: boolean("card_enabled").default(true).notNull(),
-});
-
-// ─── Store Sections (Homepage Builder) ───
-export const storeSections = pgTable("store_sections", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  sectionKey: varchar("section_key", { length: 100 }).notNull(),
-  title: varchar("title", { length: 255 }),
-  type: varchar("type", { length: 30 }).notNull(),
-  subtitle: text("subtitle"),
-  imageUrl: text("image_url"),
-  buttonText: varchar("button_text", { length: 100 }),
-  buttonUrl: varchar("button_url", { length: 500 }),
-  visible: boolean("visible").default(true).notNull(),
-  position: integer("position").default(0).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => [
-  index("store_sections_visible_idx").on(table.visible),
-  index("store_sections_position_idx").on(table.position),
-]);
+export type Product = typeof products.$inferSelect;
+export type Review = typeof reviews.$inferSelect;
+export type Order = typeof orders.$inferSelect;
