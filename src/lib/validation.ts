@@ -3,15 +3,13 @@ import { z } from "zod";
 // Product validation
 export const productSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
-  slug: z
-    .string()
-    .min(1, "Slug is required")
-    .max(255)
-    .regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with dashes"),
+  slug: z.string().min(1, "Slug is required").max(255).regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with dashes"),
   description: z.string().optional(),
   price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid price"),
   stock: z.number().int().min(0, "Stock cannot be negative"),
   imageUrl: z.string().optional(),
+
+  // Fixed: allow empty category
   categoryId: z
     .string()
     .transform((v) => v.trim())
@@ -22,17 +20,14 @@ export const productSchema = z.object({
     .transform((v) => (v === "" ? null : v))
     .optional()
     .nullable(),
+
   active: z.boolean().optional(),
 });
 
 // Category validation
 export const categorySchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
-  slug: z
-    .string()
-    .min(1, "Slug is required")
-    .max(255)
-    .regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with dashes"),
+  slug: z.string().min(1, "Slug is required").max(255).regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with dashes"),
   description: z.string().optional(),
   imageUrl: z.string().optional(),
   visible: z.boolean().optional(),
@@ -61,14 +56,10 @@ export const checkoutSchema = z.object({
   customer: customerSchema,
   deliveryZoneId: z.string().uuid("Select a delivery zone"),
   paymentMethod: z.enum(["COD", "CIB", "Edahabia", "BaridiMob", "Card"]),
-  items: z
-    .array(
-      z.object({
-        productId: z.string().uuid(),
-        quantity: z.number().int().min(1),
-      })
-    )
-    .min(1, "Cart is empty"),
+  items: z.array(z.object({
+    productId: z.string().uuid(),
+    quantity: z.number().int().min(1),
+  })).min(1, "Cart is empty"),
 });
 
 // Order status update
@@ -84,7 +75,12 @@ export const orderStatusSchema = z.object({
 });
 
 export const paymentStatusSchema = z.object({
-  paymentStatus: z.enum(["Pending", "Paid", "Failed", "Refunded"]),
+  paymentStatus: z.enum([
+    "Pending",
+    "Paid",
+    "Failed",
+    "Refunded",
+  ]),
 });
 
 // Section validation
@@ -121,12 +117,18 @@ export const settingsSchema = z.object({
   defaultLanguage: z.enum(["en", "fr", "ar"]).optional(),
   darkMode: z.boolean().optional(),
   musicEnabled: z.boolean().optional(),
-  musicUrl: z.string().optional(),
+
+  // Fixed: database can return null
+  musicUrl: z.string().nullable().optional(),
+
   socialEnabled: z.boolean().optional(),
-  instagramUrl: z.string().optional(),
-  facebookUrl: z.string().optional(),
-  tiktokUrl: z.string().optional(),
-  youtubeUrl: z.string().optional(),
+
+  // Fixed: database can return null
+  instagramUrl: z.string().nullable().optional(),
+  facebookUrl: z.string().nullable().optional(),
+  tiktokUrl: z.string().nullable().optional(),
+  youtubeUrl: z.string().nullable().optional(),
+
   codEnabled: z.boolean().optional(),
   cibEnabled: z.boolean().optional(),
   edahabiaEnabled: z.boolean().optional(),
@@ -149,7 +151,7 @@ const ALLOWED_TYPES = [
   "application/pdf",
 ];
 
-const MAX_SIZE = 20 * 1024 * 1024;
+const MAX_SIZE = 20 * 1024 * 1024; // 20MB
 
 export function validateMediaType(contentType: string): boolean {
   return ALLOWED_TYPES.includes(contentType);
@@ -167,6 +169,7 @@ export function getMediaTypeGroup(contentType: string): string {
   return "other";
 }
 
+// Utility: generate slug from name
 export function generateSlug(name: string): string {
   return name
     .toLowerCase()
@@ -176,28 +179,28 @@ export function generateSlug(name: string): string {
     .trim();
 }
 
+// Utility: generate order number
 export function generateOrderNumber(): string {
   const timestamp = Date.now().toString(36).toUpperCase();
   const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+
   return `RYV-${timestamp}-${random}`;
 }
 
+// Utility: format price
 export function formatPrice(
   price: string | number,
   currency: string = "DZD"
 ): string {
   const num = typeof price === "string" ? parseFloat(price) : price;
 
-  return (
-    new Intl.NumberFormat("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(num) +
-    " " +
-    currency
-  );
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num) + " " + currency;
 }
 
+// Payment method labels
 export const paymentMethodLabels: Record<string, string> = {
   COD: "Cash on Delivery",
   CIB: "CIB",
