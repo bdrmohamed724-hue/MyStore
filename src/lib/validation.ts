@@ -3,19 +3,36 @@ import { z } from "zod";
 // Product validation
 export const productSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
-  slug: z.string().min(1, "Slug is required").max(255).regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with dashes"),
+  slug: z
+    .string()
+    .min(1, "Slug is required")
+    .max(255)
+    .regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with dashes"),
   description: z.string().optional(),
   price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid price"),
   stock: z.number().int().min(0, "Stock cannot be negative"),
   imageUrl: z.string().optional(),
-  categoryId: z.string().uuid().optional().nullable(),
+  categoryId: z
+    .string()
+    .transform((v) => v.trim())
+    .refine(
+      (v) => v === "" || z.string().uuid().safeParse(v).success,
+      "Invalid category"
+    )
+    .transform((v) => (v === "" ? null : v))
+    .optional()
+    .nullable(),
   active: z.boolean().optional(),
 });
 
 // Category validation
 export const categorySchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
-  slug: z.string().min(1, "Slug is required").max(255).regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with dashes"),
+  slug: z
+    .string()
+    .min(1, "Slug is required")
+    .max(255)
+    .regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with dashes"),
   description: z.string().optional(),
   imageUrl: z.string().optional(),
   visible: z.boolean().optional(),
@@ -44,15 +61,26 @@ export const checkoutSchema = z.object({
   customer: customerSchema,
   deliveryZoneId: z.string().uuid("Select a delivery zone"),
   paymentMethod: z.enum(["COD", "CIB", "Edahabia", "BaridiMob", "Card"]),
-  items: z.array(z.object({
-    productId: z.string().uuid(),
-    quantity: z.number().int().min(1),
-  })).min(1, "Cart is empty"),
+  items: z
+    .array(
+      z.object({
+        productId: z.string().uuid(),
+        quantity: z.number().int().min(1),
+      })
+    )
+    .min(1, "Cart is empty"),
 });
 
 // Order status update
 export const orderStatusSchema = z.object({
-  status: z.enum(["Pending", "Confirmed", "Processing", "Shipped", "Delivered", "Cancelled"]),
+  status: z.enum([
+    "Pending",
+    "Confirmed",
+    "Processing",
+    "Shipped",
+    "Delivered",
+    "Cancelled",
+  ]),
 });
 
 export const paymentStatusSchema = z.object({
@@ -63,7 +91,15 @@ export const paymentStatusSchema = z.object({
 export const sectionSchema = z.object({
   sectionKey: z.string().min(1).max(100),
   title: z.string().max(255).optional(),
-  type: z.enum(["Hero", "Banner", "Featured", "Categories", "Newsletter", "Social", "Generic"]),
+  type: z.enum([
+    "Hero",
+    "Banner",
+    "Featured",
+    "Categories",
+    "Newsletter",
+    "Social",
+    "Generic",
+  ]),
   subtitle: z.string().optional(),
   imageUrl: z.string().optional(),
   buttonText: z.string().max(100).optional(),
@@ -100,12 +136,20 @@ export const settingsSchema = z.object({
 
 // Media validation
 const ALLOWED_TYPES = [
-  "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
-  "video/mp4", "video/webm",
-  "audio/mpeg", "audio/ogg", "audio/wav",
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/svg+xml",
+  "video/mp4",
+  "video/webm",
+  "audio/mpeg",
+  "audio/ogg",
+  "audio/wav",
   "application/pdf",
 ];
-const MAX_SIZE = 20 * 1024 * 1024; // 20MB
+
+const MAX_SIZE = 20 * 1024 * 1024;
 
 export function validateMediaType(contentType: string): boolean {
   return ALLOWED_TYPES.includes(contentType);
@@ -123,7 +167,6 @@ export function getMediaTypeGroup(contentType: string): string {
   return "other";
 }
 
-// Utility: generate slug from name
 export function generateSlug(name: string): string {
   return name
     .toLowerCase()
@@ -133,23 +176,28 @@ export function generateSlug(name: string): string {
     .trim();
 }
 
-// Utility: generate order number
 export function generateOrderNumber(): string {
   const timestamp = Date.now().toString(36).toUpperCase();
   const random = Math.random().toString(36).substring(2, 6).toUpperCase();
   return `RYV-${timestamp}-${random}`;
 }
 
-// Utility: format price
-export function formatPrice(price: string | number, currency: string = "DZD"): string {
+export function formatPrice(
+  price: string | number,
+  currency: string = "DZD"
+): string {
   const num = typeof price === "string" ? parseFloat(price) : price;
-  return new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(num) + " " + currency;
+
+  return (
+    new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(num) +
+    " " +
+    currency
+  );
 }
 
-// Payment method labels
 export const paymentMethodLabels: Record<string, string> = {
   COD: "Cash on Delivery",
   CIB: "CIB",
@@ -158,5 +206,18 @@ export const paymentMethodLabels: Record<string, string> = {
   Card: "Card",
 };
 
-export const orderStatuses = ["Pending", "Confirmed", "Processing", "Shipped", "Delivered", "Cancelled"] as const;
-export const paymentStatuses = ["Pending", "Paid", "Failed", "Refunded"] as const;
+export const orderStatuses = [
+  "Pending",
+  "Confirmed",
+  "Processing",
+  "Shipped",
+  "Delivered",
+  "Cancelled",
+] as const;
+
+export const paymentStatuses = [
+  "Pending",
+  "Paid",
+  "Failed",
+  "Refunded",
+] as const;
