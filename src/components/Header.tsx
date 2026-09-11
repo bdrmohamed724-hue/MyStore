@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useCart } from "@/lib/cart";
 import { useLocale } from "@/lib/locale";
-import { locales, localeNames, type Locale } from "@/lib/translations";
+import { locales, localeNames } from "@/lib/translations";
 
 interface StoreSettings {
   storeName?: string | null;
@@ -14,7 +13,6 @@ interface StoreSettings {
 const DEFAULT_STORE_NAME = "RYVEN DEPT.";
 
 export default function Header() {
-  const { itemCount } = useCart();
   const { t, locale, setLocale } = useLocale();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [storeName, setStoreName] = useState(DEFAULT_STORE_NAME);
@@ -33,7 +31,6 @@ export default function Header() {
   const navItems = [
     { href: "/", label: t("home") },
     { href: "/products", label: t("products") },
-    { href: "/products?category=collections", label: t("collection") },
   ];
 
   return (
@@ -41,15 +38,16 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20">
 
-          {/* Logo / Store Name */}
+          {/* Logo */}
           <Link
             href="/"
+            onClick={() => setMobileOpen(false)}
             className="text-lg sm:text-xl font-bold tracking-[0.3em] uppercase text-white hover:text-white/80 transition-colors"
           >
             {storeName}
           </Link>
 
-          {/* Desktop Nav */}
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
             {navItems.map((item) => (
               <Link
@@ -62,10 +60,10 @@ export default function Header() {
             ))}
           </nav>
 
-          {/* Right side */}
+          {/* Right Side */}
           <div className="flex items-center gap-4">
 
-            {/* Language */}
+            {/* Desktop Language */}
             <div className="hidden sm:block relative group">
               <button
                 type="button"
@@ -92,38 +90,13 @@ export default function Header() {
               </div>
             </div>
 
-            {/* Cart */}
-            <Link
-              href="/cart"
-              className="relative text-white/70 hover:text-white transition-colors"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.25-3h-15m1.5 0h12m-10.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm9 0a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"
-                />
-              </svg>
-
-              {itemCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-white text-black text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                  {itemCount}
-                </span>
-              )}
-            </Link>
-
-            {/* Mobile menu button */}
+            {/* Mobile Menu */}
             <button
               type="button"
-              onClick={() => setMobileOpen(!mobileOpen)}
+              onClick={() => setMobileOpen((open) => !open)}
               className="md:hidden text-white/70 hover:text-white transition-colors"
               aria-label="Toggle menu"
+              aria-expanded={mobileOpen}
             >
               <svg
                 className="w-6 h-6"
@@ -151,10 +124,10 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile Menu */}
       {mobileOpen && (
         <div className="md:hidden animate-slideDown bg-black/95 backdrop-blur-lg border-t border-white/5">
-          <nav className="px-6 py-6 space-y-4">
+          <nav className="px-6 py-6 space-y-5">
 
             {navItems.map((item) => (
               <Link
@@ -167,6 +140,7 @@ export default function Header() {
               </Link>
             ))}
 
+            {/* Mobile Language */}
             <div className="pt-4 border-t border-white/10">
               <p className="text-xs text-white/40 uppercase tracking-wider mb-3">
                 {t("language")}
@@ -192,6 +166,7 @@ export default function Header() {
                 ))}
               </div>
             </div>
+
           </nav>
         </div>
       )}
