@@ -1,5 +1,10 @@
 import { db } from "@/db";
-import { products, categories, storeSections, storeSettings } from "@/db/schema";
+import {
+  products,
+  categories,
+  storeSections,
+  storeSettings,
+} from "@/db/schema";
 import { eq, desc, asc } from "drizzle-orm";
 import HomeClient from "./HomeClient";
 
@@ -7,7 +12,7 @@ export const revalidate = 60;
 
 export default async function HomePage() {
   try {
-    const [allProducts, allCategories, allSections, settings] =
+    const [rawProducts, allCategories, allSections, settings] =
       await Promise.all([
         db
           .select({
@@ -40,8 +45,16 @@ export default async function HomePage() {
           .from(storeSections)
           .orderBy(asc(storeSections.position)),
 
-        db.select().from(storeSettings).limit(1),
+        db
+          .select()
+          .from(storeSettings)
+          .limit(1),
       ]);
+
+    const allProducts = rawProducts.map((product) => ({
+      ...product,
+      price: Number(product.price),
+    }));
 
     return (
       <HomeClient
@@ -51,7 +64,9 @@ export default async function HomePage() {
         settings={settings[0] || null}
       />
     );
-  } catch {
+  } catch (error) {
+    console.error("Home page error:", error);
+
     return (
       <HomeClient
         products={[]}
