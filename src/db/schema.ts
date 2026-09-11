@@ -29,7 +29,10 @@ export const categories = pgTable("categories", {
   imageUrl: text("image_url"),
   visible: boolean("visible").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("categories_slug_idx").on(table.slug),
+  index("categories_visible_idx").on(table.visible),
+]);
 
 // ─── Products ───
 export const products = pgTable("products", {
@@ -46,6 +49,9 @@ export const products = pgTable("products", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("products_category_idx").on(table.categoryId),
+  index("products_active_idx").on(table.active),
+  index("products_slug_idx").on(table.slug),
+  index("products_active_created_idx").on(table.active, table.createdAt),
 ]);
 
 // ─── Customers ───
@@ -60,6 +66,7 @@ export const customers = pgTable("customers", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("customers_email_idx").on(table.email),
+  index("customers_phone_idx").on(table.phone),
 ]);
 
 // ─── Orders ───
@@ -79,6 +86,7 @@ export const orders = pgTable("orders", {
 }, (table) => [
   index("orders_customer_idx").on(table.customerId),
   index("orders_status_idx").on(table.status),
+  index("orders_created_idx").on(table.createdAt),
 ]);
 
 // ─── Order Items ───
@@ -164,4 +172,7 @@ export const storeSections = pgTable("store_sections", {
   position: integer("position").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("store_sections_visible_idx").on(table.visible),
+  index("store_sections_position_idx").on(table.position),
+]);
