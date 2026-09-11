@@ -1,8 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { useCart } from "@/lib/cart";
 
 type Product = {
   id: string;
@@ -55,6 +59,9 @@ export default function HomeClient({
   sections,
   settings,
 }: Props) {
+  const router = useRouter();
+  const { buyNow } = useCart();
+
   const [currency, setCurrency] = useState(
     settings?.currency || "DZD"
   );
@@ -69,8 +76,10 @@ export default function HomeClient({
 
   useEffect(() => {
     fetch("/api/settings", { cache: "no-store" })
-      .then((res) => res.json())
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
+        if (!data) return;
+
         if (data?.currency) {
           setCurrency(data.currency);
         }
@@ -86,6 +95,22 @@ export default function HomeClient({
       .catch(() => {});
   }, []);
 
+  function handleBuy(product: Product) {
+    if (product.stock <= 0) return;
+
+    buyNow({
+      productId: product.id,
+      name: product.name,
+      price: String(product.price),
+      imageUrl: product.imageUrl || undefined,
+      slug: product.slug,
+      quantity: 1,
+      stock: product.stock,
+    });
+
+    router.push("/checkout");
+  }
+
   return (
     <div
       className={
@@ -97,6 +122,7 @@ export default function HomeClient({
       <Header />
 
       <main>
+        {/* HERO */}
         <section className="mx-auto max-w-7xl px-6 py-20">
           <div className="max-w-3xl">
             <p
@@ -125,25 +151,30 @@ export default function HomeClient({
           </div>
         </section>
 
+        {/* CATEGORIES */}
         {categories.length > 0 && (
           <section className="mx-auto max-w-7xl px-6 pb-12">
             <div className="flex flex-wrap gap-3">
               {categories.map((category) => (
-                <div
+                <Link
                   key={category.id}
+                  href={`/products?category=${encodeURIComponent(
+                    category.slug
+                  )}`}
                   className={
                     darkMode
-                      ? "rounded-full border border-white/10 px-4 py-2 text-sm text-white/70"
-                      : "rounded-full border border-black/10 px-4 py-2 text-sm text-black/70"
+                      ? "rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:border-white/30 hover:text-white"
+                      : "rounded-full border border-black/10 px-4 py-2 text-sm text-black/70 transition hover:border-black/30 hover:text-black"
                   }
                 >
                   {category.name}
-                </div>
+                </Link>
               ))}
             </div>
           </section>
         )}
 
+        {/* PRODUCTS */}
         <section className="mx-auto max-w-7xl px-6 pb-20">
           {products.length === 0 ? (
             <div
@@ -159,36 +190,48 @@ export default function HomeClient({
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
               {products.map((product) => (
                 <div key={product.id} className="group">
-                  <div
-                    className={
-                      darkMode
-                        ? "aspect-[4/5] overflow-hidden rounded-lg bg-white/5"
-                        : "aspect-[4/5] overflow-hidden rounded-lg bg-black/5"
-                    }
+                  {/* PRODUCT IMAGE */}
+                  <Link
+                    href={`/products/${product.slug}`}
+                    className="block"
                   >
-                    {product.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt={product.name}
-                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div
-                        className={
-                          darkMode
-                            ? "flex h-full items-center justify-center text-xs text-white/30"
-                            : "flex h-full items-center justify-center text-xs text-black/30"
-                        }
-                      >
-                        No image
-                      </div>
-                    )}
-                  </div>
+                    <div
+                      className={
+                        darkMode
+                          ? "aspect-[4/5] overflow-hidden rounded-lg bg-white/5"
+                          : "aspect-[4/5] overflow-hidden rounded-lg bg-black/5"
+                      }
+                    >
+                      {product.imageUrl ? (
+                        <img
+                          src={product.imageUrl}
+                          alt={product.name}
+                          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div
+                          className={
+                            darkMode
+                              ? "flex h-full items-center justify-center text-xs text-white/30"
+                              : "flex h-full items-center justify-center text-xs text-black/30"
+                          }
+                        >
+                          No image
+                        </div>
+                      )}
+                    </div>
+                  </Link>
 
+                  {/* PRODUCT INFO */}
                   <div className="mt-3">
-                    <h2 className="text-sm font-medium">
-                      {product.name}
-                    </h2>
+                    <Link
+                      href={`/products/${product.slug}`}
+                      className="block"
+                    >
+                      <h2 className="text-sm font-medium transition-opacity hover:opacity-60">
+                        {product.name}
+                      </h2>
+                    </Link>
 
                     <p
                       className={
@@ -199,6 +242,22 @@ export default function HomeClient({
                     >
                       {formatPrice(product.price)} {currency}
                     </p>
+
+                    {/* BUY BUTTON */}
+                    <button
+                      type="button"
+                      onClick={() => handleBuy(product)}
+                      disabled={product.stock <= 0}
+                      className={
+                        product.stock <= 0
+                          ? "mt-3 w-full cursor-not-allowed rounded-md bg-white/10 px-4 py-3 text-sm text-white/30"
+                          : darkMode
+                          ? "mt-3 w-full rounded-md bg-white px-4 py-3 text-sm font-medium text-black transition hover:bg-white/80 active:scale-[0.98]"
+                          : "mt-3 w-full rounded-md bg-black px-4 py-3 text-sm font-medium text-white transition hover:bg-black/80 active:scale-[0.98]"
+                      }
+                    >
+                      {product.stock <= 0 ? "غير متوفر" : "شراء"}
+                    </button>
                   </div>
                 </div>
               ))}
@@ -206,6 +265,7 @@ export default function HomeClient({
           )}
         </section>
 
+        {/* STORE SECTIONS */}
         {sections
           .filter((section) => section.enabled)
           .map((section) => (
