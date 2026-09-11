@@ -3,13 +3,15 @@ import { z } from "zod";
 // Product validation
 export const productSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
-  slug: z.string().min(1, "Slug is required").max(255).regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with dashes"),
+  slug: z
+    .string()
+    .min(1, "Slug is required")
+    .max(255)
+    .regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with dashes"),
   description: z.string().optional(),
   price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid price"),
   stock: z.number().int().min(0, "Stock cannot be negative"),
   imageUrl: z.string().optional(),
-
-  // Fixed: allow empty category
   categoryId: z
     .string()
     .transform((v) => v.trim())
@@ -20,27 +22,29 @@ export const productSchema = z.object({
     .transform((v) => (v === "" ? null : v))
     .optional()
     .nullable(),
-
   active: z.boolean().optional(),
 });
 
 // Category validation
 export const categorySchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
-  slug: z.string().min(1, "Slug is required").max(255).regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with dashes"),
+  slug: z
+    .string()
+    .min(1, "Slug is required")
+    .max(255)
+    .regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with dashes"),
   description: z.string().optional(),
   imageUrl: z.string().optional(),
   visible: z.boolean().optional(),
 });
 
 // Customer validation
+// Email and address are no longer required from the customer.
 export const customerSchema = z.object({
-  name: z.string().min(1, "Name is required").max(255),
-  email: z.string().email("Invalid email").max(255),
-  phone: z.string().max(50).optional(),
-  wilaya: z.string().max(100).optional(),
-  city: z.string().max(100).optional(),
-  address: z.string().optional(),
+  name: z.string().min(2, "Name is required").max(255),
+  phone: z.string().min(8, "Phone number is required").max(50),
+  wilaya: z.string().min(1, "Wilaya is required").max(100),
+  city: z.string().min(1, "Commune is required").max(100),
 });
 
 // Delivery zone validation
@@ -52,14 +56,20 @@ export const deliveryZoneSchema = z.object({
 });
 
 // Checkout validation
+// Payment method is completely removed from the customer checkout.
 export const checkoutSchema = z.object({
   customer: customerSchema,
+
   deliveryZoneId: z.string().uuid("Select a delivery zone"),
-  paymentMethod: z.enum(["COD", "CIB", "Edahabia", "BaridiMob", "Card"]),
-  items: z.array(z.object({
-    productId: z.string().uuid(),
-    quantity: z.number().int().min(1),
-  })).min(1, "Cart is empty"),
+
+  items: z
+    .array(
+      z.object({
+        productId: z.string().uuid(),
+        quantity: z.number().int().min(1),
+      })
+    )
+    .min(1, "Cart is empty"),
 });
 
 // Order status update
@@ -75,12 +85,7 @@ export const orderStatusSchema = z.object({
 });
 
 export const paymentStatusSchema = z.object({
-  paymentStatus: z.enum([
-    "Pending",
-    "Paid",
-    "Failed",
-    "Refunded",
-  ]),
+  paymentStatus: z.enum(["Pending", "Paid", "Failed", "Refunded"]),
 });
 
 // Section validation
@@ -116,14 +121,11 @@ export const settingsSchema = z.object({
   currency: z.string().max(10).optional(),
   defaultLanguage: z.enum(["en", "fr", "ar"]).optional(),
   darkMode: z.boolean().optional(),
-  musicEnabled: z.boolean().optional(),
 
-  // Fixed: database can return null
+  musicEnabled: z.boolean().optional(),
   musicUrl: z.string().nullable().optional(),
 
   socialEnabled: z.boolean().optional(),
-
-  // Fixed: database can return null
   instagramUrl: z.string().nullable().optional(),
   facebookUrl: z.string().nullable().optional(),
   tiktokUrl: z.string().nullable().optional(),
@@ -151,7 +153,7 @@ const ALLOWED_TYPES = [
   "application/pdf",
 ];
 
-const MAX_SIZE = 20 * 1024 * 1024; // 20MB
+const MAX_SIZE = 20 * 1024 * 1024;
 
 export function validateMediaType(contentType: string): boolean {
   return ALLOWED_TYPES.includes(contentType);
@@ -194,13 +196,18 @@ export function formatPrice(
 ): string {
   const num = typeof price === "string" ? parseFloat(price) : price;
 
-  return new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(num) + " " + currency;
+  return (
+    new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(num) +
+    " " +
+    currency
+  );
 }
 
-// Payment method labels
+// Kept for compatibility with existing admin/order code.
+// Customers no longer choose a payment method during checkout.
 export const paymentMethodLabels: Record<string, string> = {
   COD: "Cash on Delivery",
   CIB: "CIB",
