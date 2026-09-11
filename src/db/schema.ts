@@ -1,4 +1,16 @@
-import { pgTable, uuid, text, integer, boolean, timestamp, varchar, numeric, index, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  uuid,
+  text,
+  integer,
+  boolean,
+  timestamp,
+  varchar,
+  numeric,
+  index,
+  uniqueIndex,
+  jsonb,
+} from "drizzle-orm/pg-core";
 
 // ─── Admin Users ───
 export const adminUsers = pgTable("admin_users", {
@@ -81,13 +93,30 @@ export const orderItems = pgTable("order_items", {
   index("order_items_order_idx").on(table.orderId),
 ]);
 
-// ─── Delivery Zones ───
+// ─── Delivery Zones / Wilayas ───
 export const deliveryZones = pgTable("delivery_zones", {
   id: uuid("id").defaultRandom().primaryKey(),
+
+  // Internal name
   name: varchar("name", { length: 255 }).notNull(),
+
+  // Delivery price
   price: numeric("price", { precision: 10, scale: 2 }).notNull(),
+
+  // Estimated delivery time
   estimatedTime: varchar("estimated_time", { length: 100 }),
+
+  // Whether this Wilaya is active
   enabled: boolean("enabled").default(true).notNull(),
+
+  // Algeria Wilaya code
+  wilayaCode: integer("wilaya_code"),
+
+  // Wilaya name
+  wilayaName: varchar("wilaya_name", { length: 255 }),
+
+  // Available communes
+  communes: jsonb("communes").$type<string[]>().notNull().default([]),
 });
 
 // ─── Media ───
