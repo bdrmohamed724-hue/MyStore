@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { formatPrice } from "@/lib/utils";
 
 type Product = {
   id: string;
@@ -45,6 +44,10 @@ type Props = {
   sections: Section[];
   settings: Settings | null;
 };
+
+function formatPrice(price: number) {
+  return new Intl.NumberFormat("en-US").format(price);
+}
 
 export default function HomeClient({
   products,
