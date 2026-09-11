@@ -12,7 +12,7 @@ export const revalidate = 60;
 
 export default async function HomePage() {
   try {
-    const [rawProducts, allCategories, allSections, settings] =
+    const [rawProducts, allCategories, rawSections, settings] =
       await Promise.all([
         db
           .select({
@@ -54,6 +54,15 @@ export default async function HomePage() {
     const allProducts = rawProducts.map((product) => ({
       ...product,
       price: Number(product.price),
+    }));
+
+    const allSections = rawSections.map((section) => ({
+      id: section.id,
+      title: section.title,
+      subtitle: section.subtitle,
+      type: section.type,
+      position: section.position,
+      enabled: section.visible,
     }));
 
     return (
